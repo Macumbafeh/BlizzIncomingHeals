@@ -1,0 +1,17 @@
+## Interface: 20400
+## Title: Blizz Incoming Heals
+## Notes: Adds incoming healing bars to default frames.
+## Author: Macumba
+## Version: 1.0
+## X-Category: UnitFrame
+## DefaultState: enabled
+
+## OptionalDeps: LibHealComm-3.0
+## X-Embeds: LibHealComm-3.0
+
+libs\LibHealComm-3.0\LibStub\LibStub.lua
+libs\LibHealComm-3.0\CallbackHandler-1.0\CallbackHandler-1.0.lua
+libs\LibHealComm-3.0\LibHealComm-3.0.lua
+
+BlizzIncomingHeals.lua
+
