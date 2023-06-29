@@ -1,6 +1,7 @@
 local HealComm = LibStub:GetLibrary("LibHealComm-3.0")
-local addon = "BlizzIncomingHeals"
 local addon = {}
+
+local lastStatusBar
 
 function addon:OnEnable()
     HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
@@ -17,23 +18,33 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
         local healthDeficit = maxHealth - curHealth
         local effectiveHealSize = math.min(healSize, healthDeficit)
         
-        local function createHealStatusBar(frameHealthBar)
-            local width = effectiveHealSize / maxHealth * frameHealthBar:GetWidth()
-            local healedHealth = curHealth + effectiveHealSize
-            local statusBar = CreateFrame("StatusBar", nil, frameHealthBar)
-            statusBar:SetSize(width, frameHealthBar:GetHeight())
-            local currentPos = curHealth / maxHealth * frameHealthBar:GetWidth()
-            statusBar:SetPoint("LEFT", frameHealthBar, "LEFT", currentPos, 0)
-            statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-            statusBar:SetStatusBarColor(0, 1, 0)
-            statusBar:SetMinMaxValues(0, maxHealth)
-            statusBar:SetValue(healedHealth)
-            statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel())
-            statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
-            statusBar:Show()
-            print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
-            return statusBar
-        end
+    local function createHealStatusBar(frameHealthBar)
+    -- Check if the last status bar is for the same target
+    if lastStatusBar and lastStatusBar.frameHealthBar == frameHealthBar then
+        lastStatusBar:SetValue(healedHealth)
+        return lastStatusBar
+    end
+    
+    -- Create a new status bar
+    local width = effectiveHealSize / maxHealth * frameHealthBar:GetWidth()
+    local healedHealth = curHealth + effectiveHealSize
+    local statusBar = CreateFrame("StatusBar", nil, frameHealthBar)
+    statusBar:SetSize(frameHealthBar:GetWidth(), frameHealthBar:GetHeight())
+    statusBar:SetPoint("LEFT", frameHealthBar, "LEFT", 0, 0)
+    statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    statusBar:SetStatusBarColor(0, 1, 0, 0.6)
+    statusBar:SetMinMaxValues(0, maxHealth)
+    statusBar:SetValue(healedHealth)
+    statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
+    statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
+    statusBar:Show()
+    lastStatusBar = statusBar -- Update the last status bar reference
+    
+    print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
+    return statusBar
+end
+
+
         
         if UnitIsUnit(targetName, "target") then -- Check if the current target is being healed
             self.targetStatusBar = createHealStatusBar(TargetFrameHealthBar)
@@ -56,16 +67,16 @@ end
 
 function addon:HealingStop(event, healerName, healSize, succeeded, ...)
     if self.targetStatusBar then
-        self.targetStatusBar:Hide() -- Hide and reset target status bar
+        self.targetStatusBar:Hide()
         self.targetStatusBar:SetValue(0)
         self.targetStatusBar = nil
     end
     if self.playerStatusBar then
-        self.playerStatusBar:Hide() -- Hide and reset player status bar
+        self.playerStatusBar:Hide()
         self.playerStatusBar:SetValue(0)
         self.playerStatusBar = nil
     end
-    
+
     -- Hide and reset party status bars
     for partyIndex = 1, 5 do
         local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
@@ -75,6 +86,9 @@ function addon:HealingStop(event, healerName, healSize, succeeded, ...)
             self["party" .. partyIndex .. "StatusBar"] = nil
         end
     end
+
+    lastStatusBar = nil -- Reset the last status bar reference
 end
+
 
 addon:OnEnable()
