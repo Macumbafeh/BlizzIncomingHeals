@@ -6,25 +6,28 @@ local lastStatusBar
 function addon:OnEnable()
     HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
     HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
-    -- Add any additional events to reset the status bar, as needed
+    HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
 end
 
 function addon:HealingStart(event, healerName, healSize, endTime, ...)
     for i=1, select('#', ...) do
         local targetName = select(i, ...)
-        
+
         local maxHealth = UnitHealthMax(targetName)
         local curHealth = UnitHealth(targetName)
         local healthDeficit = maxHealth - curHealth
         local effectiveHealSize = math.min(healSize, healthDeficit)
-        
+        -- Calculate heal modifier
+        local healModifier = HealComm:UnitHealModifierGet(targetName)
+        effectiveHealSize = effectiveHealSize * healModifier
+
     local function createHealStatusBar(frameHealthBar)
     -- Check if the last status bar is for the same target
     if lastStatusBar and lastStatusBar.frameHealthBar == frameHealthBar then
         lastStatusBar:SetValue(healedHealth)
         return lastStatusBar
     end
-    
+
     -- Create a new status bar
     local width = effectiveHealSize / maxHealth * frameHealthBar:GetWidth()
     local healedHealth = curHealth + effectiveHealSize
@@ -39,13 +42,13 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
     statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
     statusBar:Show()
     lastStatusBar = statusBar -- Update the last status bar reference
-    
+
     print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
     return statusBar
 end
 
 
-        
+
         if UnitIsUnit(targetName, "target") then -- Check if the current target is being healed
             self.targetStatusBar = createHealStatusBar(TargetFrameHealthBar)
         end
@@ -56,7 +59,7 @@ end
         for partyIndex = 1, 5 do
             local partyUnitID = "party" .. partyIndex
             local partyFrame = _G["PartyMemberFrame" .. partyIndex]
-            
+
             if partyFrame and UnitIsUnit(targetName, partyUnitID) then
                 self["party" .. partyIndex .. "StatusBar"] = createHealStatusBar(partyFrame.healthbar)
             end
@@ -64,6 +67,19 @@ end
     end
 end
 
+function addon:HealModifierUpdate(event, unit, targetName, healModifier)
+    if self.targetStatusBar then
+        local maxHealth = UnitHealthMax(targetName)
+        local curHealth = UnitHealth(targetName)
+        local healthDeficit = maxHealth - curHealth
+        local effectiveHealSize = math.min(healModifier * healSize, healthDeficit)
+
+        -- Update the existing status bar with the new effective heal size
+        self.targetStatusBar:SetValue(curHealth + effectiveHealSize)
+
+        --print(string.format("Heal modifier updated: %s heals %s for %d", healerName, targetName, effectiveHealSize))
+    end
+end
 
 function addon:HealingStop(event, healerName, healSize, succeeded, ...)
     if self.targetStatusBar then
