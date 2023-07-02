@@ -257,6 +257,7 @@ local healingDebuffs =
     [GetSpellInfo(41292)] = 0.00,   -- Aura of Suffering (Essence of Souls - Black Temple)
     [GetSpellInfo(41350)] = 2.00,   -- Aura of Desire (Essence of Souls - Black Temple)
     [GetSpellInfo(30843)] = 0.00,   -- Enfeeble (Prince Malchezaar - Karazhan)
+    [GetSpellInfo(9035)] = 0.80,   -- Hex of Weakness
 }
 if not WoTLK then
     -- Priest racial removed in expansion.
