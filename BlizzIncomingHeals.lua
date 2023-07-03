@@ -135,12 +135,12 @@ end
 -- Register the event handler
 addon:RegisterEvent("UNIT_SPELLCAST_FAILED")
 
----- Set the handler function for the event
---addon:SetScript("OnEvent", function(self, event, ...)
---    if event == "UNIT_SPELLCAST_FAILED" then
---        addon:HandleSpellcastFailed(event, ...)
---    end
---end)
+-- Set the handler function for the event
+addon:SetScript("OnEvent", function(self, event, ...)
+    if event == "UNIT_SPELLCAST_FAILED" then
+        addon:HandleSpellcastFailed(event, ...)
+    end
+end)
 
 
 addon:OnEnable()
