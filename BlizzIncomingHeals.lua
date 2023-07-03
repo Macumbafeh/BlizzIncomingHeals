@@ -7,6 +7,7 @@ function addon:OnEnable()
     HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
     HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
     HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
+    HealComm.RegisterCallback(self, "HealComm_DirectHealDelayed", "HealComm_DirectHealDelayed")
 end
 
 function addon:HealingStart(event, healerName, healSize, endTime, ...)
@@ -67,17 +68,33 @@ end
     end
 end
 
+-- TODO: update bar when the modifier changed, while casting.
 function addon:HealModifierUpdate(event, unit, targetName, healModifier)
-    if self.targetStatusBar then
-        local maxHealth = UnitHealthMax(targetName)
-        local curHealth = UnitHealth(targetName)
-        local healthDeficit = maxHealth - curHealth
-        local effectiveHealSize = math.min(healModifier * healSize, healthDeficit)
+    if unit == "player" then
+        -- Update healing modifier for the player
+        -- You can use the healModifier value for further calculations or updates
+        print(string.format("Healing modifier updated for player: %s", healModifier))
+    elseif unit:sub(1, 5) == "party" then
+        -- Update healing modifier for party members
+        local partyIndex = tonumber(unit:sub(6))
+        -- You can use the healModifier value for further calculations or updates
+        print(string.format("Healing modifier updated for party member %d: %s", partyIndex, healModifier))
+    elseif unit:sub(1, 4) == "raid" then
+        -- Update healing modifier for raid members
+        local raidIndex = tonumber(unit:sub(5))
+        -- You can use the healModifier value for further calculations or updates
+        print(string.format("Healing modifier updated for raid member %d: %s", raidIndex, healModifier))
+    end
+end
 
-        -- Update the existing status bar with the new effective heal size
-        self.targetStatusBar:SetValue(curHealth + effectiveHealSize)
-
-        --print(string.format("Heal modifier updated: %s heals %s for %d", healerName, targetName, effectiveHealSize))
+-- it prints when someone who is healing you is getting his cast delayed, like taking damage, may be something else?
+-- via this event: UNIT_SPELLCAST_DELAYED
+function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, ...)
+    for i = 1, select('#', ...) do
+        local targetName = select(i, ...)
+        -- Handle the delayed healing for each target as needed
+        print(string.format("%s's healing on %s has been delayed. New completion time: %f", healerName, targetName, endTime))
+        -- You can update UI elements or perform other actions based on the delayed healing information
     end
 end
 
@@ -102,7 +119,7 @@ function addon:HealingStop(event, healerName, healSize, succeeded, ...)
             self["party" .. partyIndex .. "StatusBar"] = nil
         end
     end
-
+    --print("stop")
     lastStatusBar = nil -- Reset the last status bar reference
 end
 
