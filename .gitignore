@@ -1,2 +1,8 @@
 /.idea/.gitignore
 /.idea/discord.xml
+/.idea/BlizzIncomingHeals.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/libs/LibHealComm-3.0/old.lua
+/old.lua
+/.idea/vcs.xml
