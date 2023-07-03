@@ -222,6 +222,7 @@ end
 local healingBuffs =
 {
     [GetSpellInfo(28176)] = 1.20,   -- Fel Armor
+    [GetSpellInfo(26990)] = 3,   -- Mark of The Wild
     [GetSpellInfo(45234)] = function (count, rank) return (1.0 + (0.04 + 0.03 * (rank - 1)) * count) end  -- Focused Will
 }
 
