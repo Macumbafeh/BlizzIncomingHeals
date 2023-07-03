@@ -1,7 +1,8 @@
 local HealComm = LibStub:GetLibrary("LibHealComm-3.0")
 local addon = {}
 
-local lastStatusBar
+local statusBars = {} -- Table to store all status bars
+
 
 function addon:OnEnable()
     HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
@@ -15,33 +16,59 @@ end
 --------------------------------------------------------------------------------
 
 function addon:HealingStart(event, healerName, healSize, endTime, ...)
-    for i=1, select('#', ...) do
+    for i = 1, select('#', ...) do
         local targetName = select(i, ...)
+        -- Set the appropriate frameHealthBar based on the targetName
+        local frameHealthBar
+        if UnitIsUnit(targetName, "target") then
+            frameHealthBar = TargetFrameHealthBar
 
-        local maxHealth = UnitHealthMax(targetName)
-        local curHealth = UnitHealth(targetName)
-        local healthDeficit = maxHealth - curHealth
-        local effectiveHealSize = math.min(healSize, healthDeficit)
-        -- Calculate heal modifier
-        local healModifier = HealComm:UnitHealModifierGet(targetName)
-        effectiveHealSize = effectiveHealSize * healModifier
+        end
+        if targetName == UnitName("player") then
+            frameHealthBar = PlayerFrameHealthBar
+        end
 
-        --------------------------------------------------------------------------------
-        -- Incoming Heal Status Bar
-        --------------------------------------------------------------------------------
+        -- If frameHealthBar is still not assigned, check party members
+        if frameHealthBar then
+            for partyIndex = 1, 5 do
+                local partyUnitID = "party" .. partyIndex
+                local partyFrame = _G["PartyMemberFrame" .. partyIndex]
+                if partyFrame and UnitIsUnit(targetName, partyUnitID) then
+                    frameHealthBar = partyFrame.healthbar
+                    --break
+                end
+            end
+        end
 
-        --TODO: RENAME ME
-        local function createHealStatusBar(frameHealthBar)
+
+
+        if frameHealthBar then
             -- Check if the last status bar is for the same target
             if lastStatusBar and lastStatusBar.frameHealthBar == frameHealthBar then
-                lastStatusBar:SetValue(healedHealth)
+                lastStatusBar:SetValue(curHealth + effectiveHealSize)
                 return lastStatusBar
             end
+
+            for _, statusBar in ipairs(statusBars) do
+                if statusBar.targetName == targetName then
+                    statusBar:SetValue(curHealth + effectiveHealSize)
+                    return statusBar
+                end
+            end
+
+            local maxHealth = UnitHealthMax(targetName)
+            local curHealth = UnitHealth(targetName)
+            local healthDeficit = maxHealth - curHealth
+            local effectiveHealSize = math.min(healSize, healthDeficit)
+            -- Calculate heal modifier
+            local healModifier = HealComm:UnitHealModifierGet(targetName)
+            effectiveHealSize = effectiveHealSize * healModifier
 
             -- Create a new status bar
             local width = effectiveHealSize / maxHealth * frameHealthBar:GetWidth()
             local healedHealth = curHealth + effectiveHealSize
-            local statusBar = CreateFrame("StatusBar", "BlizzIncomingHealsStatusBar", frameHealthBar)
+            local statusBar = CreateFrame("StatusBar", nil, frameHealthBar)
+            -- Set up the status bar properties
             statusBar:SetSize(frameHealthBar:GetWidth(), frameHealthBar:GetHeight())
             statusBar:SetPoint("LEFT", frameHealthBar, "LEFT", 0, 0)
             statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
@@ -54,35 +81,11 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
             lastStatusBar = statusBar -- Update the last status bar reference
 
             print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
-            return statusBar
-        end
-
-
-        --------------------------------------------------------------------------------
-        -- Status bar creation ENDS
-        --------------------------------------------------------------------------------
-        --------------------------------------------------------------------------------
-        -- Healing Start CONTINUES
-        --------------------------------------------------------------------------------
-
-
-        if UnitIsUnit(targetName, "target") then -- Check if the current target is being healed
-            self.targetStatusBar = createHealStatusBar(TargetFrameHealthBar)
-        end
-        if targetName == UnitName("player") then -- Check if the player is being healed
-            self.playerStatusBar = createHealStatusBar(PlayerFrameHealthBar)
-        end
-        -- Check if any of the party members is being healed
-        for partyIndex = 1, 5 do
-            local partyUnitID = "party" .. partyIndex
-            local partyFrame = _G["PartyMemberFrame" .. partyIndex]
-
-            if partyFrame and UnitIsUnit(targetName, partyUnitID) then
-                self["party" .. partyIndex .. "StatusBar"] = createHealStatusBar(partyFrame.healthbar)
-            end
+            table.insert(statusBars, statusBar) -- Add the new status bar to the table
         end
     end
 end
+
 
 --------------------------------------------------------------------------------
 -- HealModifierUpdate
@@ -135,35 +138,13 @@ end
 --------------------------------------------------------------------------------
 
 function addon:HealingStop(event, healerName, healSize, succeeded, ...)
-    if self.targetStatusBar then
-        self.targetStatusBar:Hide()
-        self.targetStatusBar:SetValue(0)
-        self.targetStatusBar = nil
-        print("stop1")
+    for i = #statusBars, 1, -1 do
+        print(i)
+        local statusBar = statusBars[i]
+        statusBar:Hide()
+        statusBar:SetValue(0)
+        table.remove(statusBars, i) -- Remove the status bar from the table
     end
-    if self.playerStatusBar then
-        self.playerStatusBar:Hide()
-        self.playerStatusBar:SetValue(0)
-        self.playerStatusBar = nil
-        print("stop2")
-    end
-
-    -- Hide and reset party status bars
-    for partyIndex = 1, 5 do
-        local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
-        if partyStatusBar then
-            partyStatusBar:Hide()
-            partyStatusBar:SetValue(0)
-            self["party" .. partyIndex .. "StatusBar"] = nil
-            print("stop3")
-        end
-    end
-
-    if lastStatusBar then
-        lastStatusBar:Hide()
-        print("stop4")
-    end
-    lastStatusBar = nil -- Reset the last status bar reference
 end
 
 addon:OnEnable()
