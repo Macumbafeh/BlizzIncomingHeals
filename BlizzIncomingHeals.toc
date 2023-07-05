@@ -11,6 +11,7 @@
 
 libs\LibHealComm-3.0\LibStub\LibStub.lua
 libs\LibHealComm-3.0\CallbackHandler-1.0\CallbackHandler-1.0.lua
+libs\AceTimer-3.0\AceTimer-3.0.xml
 libs\LibHealComm-3.0\LibHealComm-3.0.lua
 
 BlizzIncomingHeals.lua
