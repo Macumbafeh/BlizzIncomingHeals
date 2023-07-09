@@ -53,12 +53,15 @@ end
                 statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
                 statusBar:Show()
                 local remainingTime = endTime - GetTime()
-                local function PrintAfterThreeSeconds()
-                    print("Cast of " .. healerName .. " has ended.")
-                    statusBar:Hide()
+                function addon:PrintAndHideStatusBar(statusBar)
+                    if statusBar then
+                        print("Timer has ended, hiding...")
+                        statusBar:Hide()
+                        statusBar:SetValue(0)
+                    end
                 end
 
-                statusBar.timerID = AceTimer:ScheduleTimer(PrintAfterThreeSeconds, remainingTime)
+                statusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(statusBar) end, remainingTime)
                 lastStatusBar = statusBar -- Update the last status bar reference
 
                 print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
@@ -147,45 +150,21 @@ end
 function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, ...)
     for i = 1, select('#', ...) do
         local targetName = select(i, ...)
-        print(string.format("%s's healing on %s has been delayed. New completion time: %f", healerName, targetName, endTime))
 
-        -- Define the function we want to call after the delayed end time
-        local function PrintAfterDelay()
-            print("Delayed cast of " .. healerName .. " has ended.")
-            if targetName == UnitName("player") and self.playerStatusBar then
-                self.playerStatusBar:Hide()
-                self.playerStatusBar:SetValue(0)
-                self.playerStatusBar = nil
-            end
-            if UnitIsUnit(targetName, "target") and self.targetStatusBar then
-                self.targetStatusBar:Hide()
-                self.targetStatusBar:SetValue(0)
-                self.targetStatusBar = nil
-            end
-            for partyIndex = 1, 5 do
-                local partyUnitID = "party" .. partyIndex
-                if UnitIsUnit(targetName, partyUnitID) and self["party" .. partyIndex .. "StatusBar"] then
-                    self["party" .. partyIndex .. "StatusBar"]:Hide()
-                    self["party" .. partyIndex .. "StatusBar"]:SetValue(0)
-                    self["party" .. partyIndex .. "StatusBar"] = nil
-                end
-            end
-            if lastStatusBar then
-                lastStatusBar:Hide()
-                lastStatusBar = nil
-            end
-        end
+        local timeRemaining = endTime - GetTime()
+        print(string.format("|cFFFF0000%s's|r healing on |cFF00FF00%s|r has been delayed. It will be completed in |cFFFFFF00%.2f|r seconds.", healerName, targetName, timeRemaining))
 
         -- Cancel the existing timer and create a new one in case of player
         if addon.playerStatusBar and targetName == UnitName("player") then
+            --AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
             AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
-            addon.playerStatusBar.timerID = AceTimer:ScheduleTimer(PrintAfterDelay, endTime - GetTime())
+            addon.playerStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.playerStatusBar) end, endTime - GetTime())
         end
 
         -- Cancel the existing timer and create a new one in case of target
         if addon.targetStatusBar and UnitIsUnit(targetName, "target") then
             AceTimer:CancelTimer(addon.targetStatusBar.timerID, true)
-            addon.targetStatusBar.timerID = AceTimer:ScheduleTimer(PrintAfterDelay, endTime - GetTime())
+            addon.targetStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.targetStatusBar) end, endTime - GetTime())
         end
 
         -- Cancel the existing timer and create a new one in case of party members
@@ -193,7 +172,7 @@ function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, 
             local partyUnitID = "party" .. partyIndex
             if addon["party" .. partyIndex .. "StatusBar"] and UnitIsUnit(targetName, partyUnitID) then
                 AceTimer:CancelTimer(addon["party" .. partyIndex .. "StatusBar"].timerID, true)
-                addon["party" .. partyIndex .. "StatusBar"].timerID = AceTimer:ScheduleTimer(PrintAfterDelay, endTime - GetTime())
+                addon["party" .. partyIndex .. "StatusBar"].timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon["party" .. partyIndex .. "StatusBar"]) end, endTime - GetTime())
             end
         end
     end
@@ -210,6 +189,7 @@ end
 function addon:HealingStop(event, healerName, healSize, succeeded, ...)
     for i = 1, select('#', ...) do
         local targetName = select(i, ...)
+        print("|cFFFF0000Healing Stop is called|r")
         if self.activeHealers[targetName] then
             self.activeHealers[targetName][healerName] = nil
 
@@ -228,13 +208,11 @@ function addon:HealingStop(event, healerName, healSize, succeeded, ...)
             -- If there are no healers left, hide the bar
             if not healersLeft then
                 if self.targetStatusBar then
-                    AceTimer:CancelTimer(self.targetStatusBar.timerID, true)
                     self.targetStatusBar:Hide()
                     self.targetStatusBar:SetValue(0)
                     self.targetStatusBar = nil
                 end
                 if self.playerStatusBar then
-                    AceTimer:CancelTimer(self.playerStatusBar.timerID, true)
                     self.playerStatusBar:Hide()
                     self.playerStatusBar:SetValue(0)
                     self.playerStatusBar = nil
@@ -244,7 +222,6 @@ function addon:HealingStop(event, healerName, healSize, succeeded, ...)
                 for partyIndex = 1, 5 do
                     local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
                     if partyStatusBar then
-                        AceTimer:CancelTimer(partyStatusBar.timerID, true)
                         partyStatusBar:Hide()
                         partyStatusBar:SetValue(0)
                         self["party" .. partyIndex .. "StatusBar"] = nil
