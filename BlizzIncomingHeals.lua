@@ -5,6 +5,7 @@ local AceTimer = LibStub("AceTimer-3.0")
 local lastStatusBar
 
 function addon:OnEnable()
+    self.activeHealers = {} -- table to store healer names
     HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
     HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
     HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
@@ -88,6 +89,10 @@ end
                     self["party" .. partyIndex .. "StatusBar"] = createHealStatusBar(partyFrame.healthbar)
                 end
             end
+            if not self.activeHealers[targetName] then
+                self.activeHealers[targetName] = {}
+            end
+            self.activeHealers[targetName][healerName] = true
         end
     end
 
@@ -157,36 +162,52 @@ end
 --------------------------------------------------------------------------------
 
     function addon:HealingStop(event, healerName, healSize, succeeded, ...)
-        if self.targetStatusBar then
-            self.targetStatusBar:Hide()
-            self.targetStatusBar:SetValue(0)
-            self.targetStatusBar = nil
-            print("stop1")
-        end
-        if self.playerStatusBar then
-            self.playerStatusBar:Hide()
-            self.playerStatusBar:SetValue(0)
-            self.playerStatusBar = nil
-            print("stop2")
-        end
+        for i = 1, select('#', ...) do
+            local targetName = select(i, ...)
+            if self.activeHealers[targetName] then
+                self.activeHealers[targetName][healerName] = nil
+                -- Check if there are any healers left
+                local healersLeft = false
+                for _ in pairs(self.activeHealers[targetName]) do
+                    healersLeft = true
+                    break
+                end
 
-        -- Hide and reset party status bars
-        for partyIndex = 1, 5 do
-            local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
-            if partyStatusBar then
-                partyStatusBar:Hide()
-                partyStatusBar:SetValue(0)
-                self["party" .. partyIndex .. "StatusBar"] = nil
-                print("stop3")
+                -- Print statements added here
+                print("Target Name: " .. targetName)
+                print("Healer Name: " .. healerName)
+                print("Healers Left: " .. tostring(healersLeft))
+
+                -- If there are no healers left, hide the bar
+                if not healersLeft then
+                    if self.targetStatusBar then
+                        self.targetStatusBar:Hide()
+                        self.targetStatusBar:SetValue(0)
+                        self.targetStatusBar = nil
+                    end
+                    if self.playerStatusBar then
+                        self.playerStatusBar:Hide()
+                        self.playerStatusBar:SetValue(0)
+                        self.playerStatusBar = nil
+                    end
+                    -- Hide and reset party status bars
+                    for partyIndex = 1, 5 do
+                        local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
+                        if partyStatusBar then
+                            partyStatusBar:Hide()
+                            partyStatusBar:SetValue(0)
+                            self["party" .. partyIndex .. "StatusBar"] = nil
+                        end
+                    end
+                    if lastStatusBar then
+                        lastStatusBar:Hide()
+                    end
+                    lastStatusBar = nil -- Reset the last status bar reference
+                end
             end
         end
-
-        if lastStatusBar then
-            lastStatusBar:Hide()
-            print("stop4")
-        end
-        lastStatusBar = nil -- Reset the last status bar reference
     end
 
-    addon:OnEnable()
+
+addon:OnEnable()
 
