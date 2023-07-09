@@ -147,48 +147,25 @@ end
 function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, ...)
     for i = 1, select('#', ...) do
         local targetName = select(i, ...)
-        print(string.format("%s's healing on %s has been delayed. New completion time: %f", healerName, targetName, endTime))
-
-        -- Define the function we want to call after the delayed end time
+        local timeRemaining = endTime - GetTime()
+        print(string.format("|cFFFF0000%s's|r healing on |cFF00FF00%s|r has been delayed. It will be completed in |cFFFFFF00%.2f|r seconds.", healerName, targetName, timeRemaining))
         local function PrintAfterDelay()
             print("Delayed cast of " .. healerName .. " has ended.")
-            if targetName == UnitName("player") and self.playerStatusBar then
-                self.playerStatusBar:Hide()
-                self.playerStatusBar:SetValue(0)
-                self.playerStatusBar = nil
-            end
-            if UnitIsUnit(targetName, "target") and self.targetStatusBar then
-                self.targetStatusBar:Hide()
-                self.targetStatusBar:SetValue(0)
-                self.targetStatusBar = nil
-            end
-            for partyIndex = 1, 5 do
-                local partyUnitID = "party" .. partyIndex
-                if UnitIsUnit(targetName, partyUnitID) and self["party" .. partyIndex .. "StatusBar"] then
-                    self["party" .. partyIndex .. "StatusBar"]:Hide()
-                    self["party" .. partyIndex .. "StatusBar"]:SetValue(0)
-                    self["party" .. partyIndex .. "StatusBar"] = nil
-                end
-            end
-            if lastStatusBar then
-                lastStatusBar:Hide()
-                lastStatusBar = nil
-            end
         end
 
-        -- Cancel the existing timer and create a new one in case of player
+        -- Handle the delay for player's status bar
         if addon.playerStatusBar and targetName == UnitName("player") then
             AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
             addon.playerStatusBar.timerID = AceTimer:ScheduleTimer(PrintAfterDelay, endTime - GetTime())
         end
 
-        -- Cancel the existing timer and create a new one in case of target
+        -- Handle the delay for target's status bar
         if addon.targetStatusBar and UnitIsUnit(targetName, "target") then
             AceTimer:CancelTimer(addon.targetStatusBar.timerID, true)
             addon.targetStatusBar.timerID = AceTimer:ScheduleTimer(PrintAfterDelay, endTime - GetTime())
         end
 
-        -- Cancel the existing timer and create a new one in case of party members
+        -- Handle the delay for party members' status bars
         for partyIndex = 1, 5 do
             local partyUnitID = "party" .. partyIndex
             if addon["party" .. partyIndex .. "StatusBar"] and UnitIsUnit(targetName, partyUnitID) then
@@ -210,7 +187,7 @@ end
 function addon:HealingStop(event, healerName, healSize, succeeded, ...)
     for i = 1, select('#', ...) do
         local targetName = select(i, ...)
-        if self.activeHealers[targetName] then
+        if self.activeHealers[targetName] and self.activeHealers[targetName][healerName] then
             self.activeHealers[targetName][healerName] = nil
 
             -- Check if there are any healers left
