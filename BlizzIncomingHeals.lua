@@ -16,10 +16,25 @@ end
 ----  Healing Start
 --------------------------------------------------------------------------------
 
-    function addon:HealingStart(event, healerName, healSize, endTime, ...)
-        for i=1, select('#', ...) do
-            local targetName = select(i, ...)
+function addon:HealingStart(event, healerName, healSize, endTime, ...)
+    for i = 1, select('#', ...) do
+        local targetName = select(i, ...)
 
+        -- Check if the target is already being healed
+        local isBeingHealed = false
+        if self.activeHealers[targetName] then
+            for healer, _ in pairs(self.activeHealers[targetName]) do
+                if healer ~= healerName then
+                    isBeingHealed = true
+                    break
+                end
+            end
+        end
+
+        if isBeingHealed then
+            print(targetName .. " is already being healed by someone.")
+        else
+            -- Calculate heal values and create heal status bar
             local maxHealth = UnitHealthMax(targetName)
             local curHealth = UnitHealth(targetName)
             local healthDeficit = maxHealth - curHealth
@@ -55,7 +70,7 @@ end
                 local remainingTime = endTime - GetTime()
                 function addon:PrintAndHideStatusBar(statusBar)
                     if statusBar then
-                        print("Timer has ended, hiding...")
+                        --print("Timer has ended, hiding...")
                         statusBar:Hide()
                         statusBar:SetValue(0)
                     end
@@ -64,7 +79,7 @@ end
                 statusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(statusBar) end, remainingTime)
                 lastStatusBar = statusBar -- Update the last status bar reference
 
-                print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
+                --print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
                 return statusBar
             end
 
@@ -77,27 +92,31 @@ end
             --------------------------------------------------------------------------------
 
 
-            if UnitIsUnit(targetName, "target") then -- Check if the current target is being healed
+            -- Check if the target is the current target or player
+            if UnitIsUnit(targetName, "target") then
                 self.targetStatusBar = createHealStatusBar(TargetFrameHealthBar)
             end
-            if targetName == UnitName("player") then -- Check if the player is being healed
+            if targetName == UnitName("player") then
                 self.playerStatusBar = createHealStatusBar(PlayerFrameHealthBar)
             end
-            -- Check if any of the party members is being healed
+
+            -- Check if any of the party members are being healed
             for partyIndex = 1, 5 do
                 local partyUnitID = "party" .. partyIndex
                 local partyFrame = _G["PartyMemberFrame" .. partyIndex]
-
                 if partyFrame and UnitIsUnit(targetName, partyUnitID) then
                     self["party" .. partyIndex .. "StatusBar"] = createHealStatusBar(partyFrame.healthbar)
                 end
             end
+
+            -- Store active healers
             if not self.activeHealers[targetName] then
                 self.activeHealers[targetName] = {}
             end
             self.activeHealers[targetName][healerName] = true
         end
     end
+end
 
 --------------------------------------------------------------------------------
 ---- Some debug codes.
@@ -124,17 +143,17 @@ end
         if unit == "player" then
             -- Update healing modifier for the player
             -- You can use the healModifier value for further calculations or updates
-            print(string.format("Healing modifier updated for player: %s", healModifier))
+            --print(string.format("Healing modifier updated for player: %s", healModifier))
         elseif unit:sub(1, 5) == "party" then
             -- Update healing modifier for party members
             local partyIndex = tonumber(unit:sub(6))
             -- You can use the healModifier value for further calculations or updates
-            print(string.format("Healing modifier updated for party member %d: %s", partyIndex, healModifier))
+            --print(string.format("Healing modifier updated for party member %d: %s", partyIndex, healModifier))
         elseif unit:sub(1, 4) == "raid" then
             -- Update healing modifier for raid members
             local raidIndex = tonumber(unit:sub(5))
             -- You can use the healModifier value for further calculations or updates
-            print(string.format("Healing modifier updated for raid member %d: %s", raidIndex, healModifier))
+            --print(string.format("Healing modifier updated for raid member %d: %s", raidIndex, healModifier))
         end
     end
 
@@ -152,7 +171,7 @@ function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, 
         local targetName = select(i, ...)
 
         local timeRemaining = endTime - GetTime()
-        print(string.format("|cFFFF0000%s's|r healing on |cFF00FF00%s|r has been delayed. It will be completed in |cFFFFFF00%.2f|r seconds.", healerName, targetName, timeRemaining))
+        --print(string.format("|cFFFF0000%s's|r healing on |cFF00FF00%s|r has been delayed. It will be completed in |cFFFFFF00%.2f|r seconds.", healerName, targetName, timeRemaining))
 
         -- Cancel the existing timer and create a new one in case of player
         if addon.playerStatusBar and targetName == UnitName("player") then
@@ -189,7 +208,7 @@ end
 function addon:HealingStop(event, healerName, healSize, succeeded, ...)
     for i = 1, select('#', ...) do
         local targetName = select(i, ...)
-        print("|cFFFF0000Healing Stop is called|r")
+        --print("|cFFFF0000Healing Stop is called|r")
         if self.activeHealers[targetName] then
             self.activeHealers[targetName][healerName] = nil
 
@@ -201,9 +220,9 @@ function addon:HealingStop(event, healerName, healSize, succeeded, ...)
             end
 
             -- Print statements added here
-            print("Target Name: " .. targetName)
-            print("Healer Name: " .. healerName)
-            print("Healers Left: " .. tostring(healersLeft))
+            --print("Target Name: " .. targetName)
+            --print("Healer Name: " .. healerName)
+            --print("Healers Left: " .. tostring(healersLeft))
 
             -- If there are no healers left, hide the bar
             if not healersLeft then
