@@ -21,18 +21,17 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
         local targetName = select(i, ...)
 
         -- Check if the target is already being healed
-        local isBeingHealed = false
+        local totalIncomingHeal = 0
         if self.activeHealers[targetName] then
             for healer, _ in pairs(self.activeHealers[targetName]) do
                 if healer ~= healerName then
-                    isBeingHealed = true
-                    break
+                    totalIncomingHeal = totalIncomingHeal + self:GetIncomingHealAmount(targetName, healer)
                 end
             end
         end
 
-        if isBeingHealed then
-            print(targetName .. " is already being healed by someone.")
+        if totalIncomingHeal > 0 then
+            print(targetName .. " is already being healed for a total of " .. totalIncomingHeal .. " HP.")
         else
             -- Calculate heal values and create heal status bar
             local maxHealth = UnitHealthMax(targetName)
@@ -117,6 +116,15 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
         end
     end
 end
+
+function addon:GetIncomingHealAmount(targetName, healerName)
+    local incomingHealBefore, incomingHealAfter, _, nextSize, nextName = HealComm:UnitIncomingHealGet(targetName, GetTime())
+    if nextName and nextName == healerName then
+        return nextSize
+    end
+    return 0
+end
+
 
 --------------------------------------------------------------------------------
 ---- Some debug codes.
