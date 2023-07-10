@@ -2,6 +2,12 @@ local HealComm = LibStub:GetLibrary("LibHealComm-3.0")
 local addon = {}
 local AceTimer = LibStub("AceTimer-3.0")
 
+-- Assert color codes for clarity
+local COLOR_GREEN = "|cff00ff00"  -- Green
+local COLOR_RED = "|cffff0000"    -- Red
+local COLOR_YELLOW = "|cffffff00" -- Yellow
+local COLOR_RESET = "|r"         -- Reset
+
 local lastStatusBar
 
 function addon:OnEnable()
@@ -15,6 +21,9 @@ end
 --------------------------------------------------------------------------------
 ----  Healing Start
 --------------------------------------------------------------------------------
+
+-- Adding this outside of your function to keep track of total heals
+addon.totalHealMap = addon.totalHealMap or {}
 
 function addon:HealingStart(event, healerName, healSize, endTime, ...)
     for i = 1, select('#', ...) do
@@ -30,8 +39,26 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
             end
         end
 
+        -- Calculate heal values and create heal status bar
+        local maxHealth = UnitHealthMax(targetName)
+        local curHealth = UnitHealth(targetName)
+        local healthDeficit = maxHealth - curHealth
+        local effectiveHealSize = math.min(healSize, healthDeficit)
+
+        -- Calculate heal modifier
+        local healModifier = HealComm:UnitHealModifierGet(targetName)
+        effectiveHealSize = effectiveHealSize * healModifier
+
+        -- Update total heals
+        addon.totalHealMap[targetName] = (addon.totalHealMap[targetName] or 0) + effectiveHealSize
+
+        -- Print total expected heal size and effective heal size
+        print(string.format(COLOR_GREEN .. "%d" .. COLOR_RESET .. " + " .. COLOR_RED .. "%d" .. COLOR_RESET .. " = " .. COLOR_YELLOW .. "%d" .. COLOR_RESET,
+                effectiveHealSize, addon.totalHealMap[targetName] - effectiveHealSize, addon.totalHealMap[targetName]))
+
         if totalIncomingHeal > 0 then
-            print(targetName .. " is already being healed for a total of " .. totalIncomingHeal .. " HP.")
+            -- for now preventing new bar to be created if there is already incoming heal
+            --print(targetName .. " is already being healed for a total of " .. totalIncomingHeal .. " HP.")
         else
             -- Calculate heal values and create heal status bar
             local maxHealth = UnitHealthMax(targetName)
@@ -41,6 +68,8 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
             -- Calculate heal modifier
             local healModifier = HealComm:UnitHealModifierGet(targetName)
             effectiveHealSize = effectiveHealSize * healModifier
+
+
 
             --------------------------------------------------------------------------------
             ---- Create Incoming Heal Status Bar
@@ -72,6 +101,8 @@ function addon:HealingStart(event, healerName, healSize, endTime, ...)
                         --print("Timer has ended, hiding...")
                         statusBar:Hide()
                         statusBar:SetValue(0)
+                        -- Reset accumulated healing for the target
+                        addon.totalHealMap[targetName] = 0
                     end
                 end
 
@@ -258,6 +289,8 @@ function addon:HealingStop(event, healerName, healSize, succeeded, ...)
                     lastStatusBar:Hide()
                 end
                 lastStatusBar = nil -- Reset the last status bar reference
+                -- Reset total heal
+                addon.totalHealMap[targetName] = 0
             end
         end
     end
