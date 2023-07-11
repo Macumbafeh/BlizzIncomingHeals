@@ -115,10 +115,23 @@
                         statusBar:SetStatusBarColor(1, 1, 1, 1) -- White color
                     end
                     statusBar:SetMinMaxValues(0, maxHealth)
-                    --print(healedHealth.."  2")
-                    --print(addon.totalHealMap[targetName].. "  healmap 2")
 
                     statusBar:SetValue(healedHealth + totalIncomingHeal)
+
+                    -- Inside the createHealStatusBar function, after the statusBar is created
+                    statusBar.prevHealth = UnitHealth(targetName)
+
+                    -- Register UNIT_COMBAT event for the status bar
+                    statusBar:RegisterEvent("UNIT_COMBAT")
+
+                    -- Inside the createHealStatusBar function, after the statusBar is created
+                    statusBar:SetScript("OnEvent", function(self, event, unit, action, flag, amount, damageType)
+                            local oldValue = self:GetValue()
+                            --print("Old value: " .. oldValue)
+                            local newValue = oldValue - amount
+                            self:SetValue(newValue)
+                            --print("New value: " .. newValue)
+                    end)
 
                     statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
                     statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
