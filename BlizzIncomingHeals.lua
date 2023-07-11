@@ -125,12 +125,16 @@
                     statusBar:RegisterEvent("UNIT_COMBAT")
 
                     -- Inside the createHealStatusBar function, after the statusBar is created
-                    statusBar:SetScript("OnEvent", function(self, event, unit, action, flag, amount, damageType)
+                    statusBar:SetScript("OnEvent", function(self, _, unit, event, flag, amount, damageType)
+                        if event == "WOUND" then
                             local oldValue = self:GetValue()
                             --print("Old value: " .. oldValue)
                             local newValue = oldValue - amount
                             self:SetValue(newValue)
                             --print("New value: " .. newValue)
+                        else
+
+                        end
                     end)
 
                     statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
