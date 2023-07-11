@@ -112,7 +112,8 @@
                     if totalIncomingHeal > 0 then
                         statusBar:SetStatusBarColor(1, 1, 0, 1) -- Yellow color
                     else
-                        statusBar:SetStatusBarColor(1, 1, 1, 1) -- White color
+                        statusBar:SetStatusBarColor(0, 1, 0, 1) -- Green color
+                        --statusBar:SetStatusBarColor(1, 1, 1, 1) -- White color
                     end
                     statusBar:SetMinMaxValues(0, maxHealth)
 
@@ -132,13 +133,36 @@
                             local newValue = oldValue - amount
                             self:SetValue(newValue)
                             --print("New value: " .. newValue)
+                        elseif event == "HEAL" then
+                            local oldValue = self:GetValue()
+                            --print("Old value: " .. oldValue)
+                            local newValue = oldValue + amount
+                            self:SetValue(newValue)
+                            --print("New value: " .. newValue)
                         else
 
                         end
                     end)
 
-                    statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
-                    statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
+                    -- EXPERIMENTAL STRATA FIX
+                    -- Get the parent frame of the health bar
+                    local parentFrame = frameHealthBar:GetParent()
+                    -- Get the name of the parent frame
+                    local parentFrameName = parentFrame:GetName()
+                    -- Get the health bar of the parent frame
+                    local parentHealthBar = _G[parentFrameName .. "HealthBar"]
+                    -- Set the frame level of the status bar to be one less than the health bar of the parent frame
+                    -- If the parent frame is the TargetFrame, set the frame level of the status bar to be the same as the health bar
+                    if parentFrameName == "TargetFrame" then
+                        statusBar:SetFrameLevel(parentHealthBar:GetFrameLevel())
+                    else
+                        -- For all other frames, set the frame level of the status bar to be one less than the health bar
+                        statusBar:SetFrameLevel(parentHealthBar:GetFrameLevel() - 1)
+                    end
+
+                    --statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
+                    --statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
+
                     statusBar:Show()
 
                     lastStatusBar = statusBar -- Update the last status bar reference
