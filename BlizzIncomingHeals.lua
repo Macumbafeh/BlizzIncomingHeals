@@ -10,18 +10,20 @@
     local addon = {}
     addon.healerStatusBars = addon.healerStatusBars or {}
 
+    -- unused lib
     local AceTimer = LibStub("AceTimer-3.0")
 
     -- Assert color codes for clarity
-    local COLOR_GREEN = "|cff00ff00"  -- Green
-    local COLOR_RED = "|cffff0000"    -- Red
-    local COLOR_YELLOW = "|cffffff00" -- Yellow
-    local COLOR_RESET = "|r"         -- Reset
+    local GREEN = "|cff00ff00"  -- Green
+    local RED = "|cffff0000"    -- Red
+    local YELLOW = "|cffffff00" -- Yellow
+    local RESET = "|r"         -- Reset
 
     local lastStatusBar
 
     function addon:OnEnable()
         self.activeHealers = {} -- table to store healer names
+        -- unused table totalHealMap
         self.totalHealMap = self.totalHealMap or {}
         HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
         HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
@@ -46,6 +48,7 @@
                     end
                 end
             end
+            --print(totalIncomingHeal)
 
             --print(targetName) -- Print the targetName
 
@@ -63,12 +66,12 @@
             ---- totalHealMap
             --print(effectiveHealSize)
             -- Update total heals
-            addon.totalHealMap[targetName] = (addon.totalHealMap[targetName] or 0) + effectiveHealSize
+            --addon.totalHealMap[targetName] = (addon.totalHealMap[targetName] or 0) + effectiveHealSize
 
-            -- Print total expected heal size and effective heal size
-            print(string.format(COLOR_GREEN .. "%d" .. COLOR_RESET .. " + " .. COLOR_RED .. "%d" .. COLOR_RESET .. " = " .. COLOR_YELLOW .. "%d" .. COLOR_RESET,
-                    effectiveHealSize, addon.totalHealMap[targetName] - effectiveHealSize, addon.totalHealMap[targetName]))
-
+            ---- Print total expected heal size and effective heal size
+            --print(string.format(GREEN .. "%d" .. RESET .. " + " .. RED .. "%d" .. RESET .. " = " .. YELLOW .. "%d" .. RESET,
+            --        effectiveHealSize, addon.totalHealMap[targetName] - effectiveHealSize, addon.totalHealMap[targetName]))
+            --
 
                 -- Calculate heal values and create heal status bar
                 local maxHealth = UnitHealthMax(targetName)
@@ -115,7 +118,7 @@
                     --print(healedHealth.."  2")
                     --print(addon.totalHealMap[targetName].. "  healmap 2")
 
-                    statusBar:SetValue(curHealth + addon.totalHealMap[targetName])
+                    statusBar:SetValue(healedHealth + totalIncomingHeal)
 
                     statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
                     statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
@@ -216,36 +219,37 @@
                     end
                     lastStatusBar = nil -- Reset the last status bar reference
                     -- Reset total heal
-                    addon.totalHealMap[targetName] = 0
+                    --addon.totalHealMap[targetName] = 0
                 end
             end
         end
+    end
+
+    --------------------------------------------------------------------------------
+    -- HealModifierUpdate
+    -- fires when someone gains buff/debuff that affects healing size.
+    ------ UPDATE: WE DO NOT USE IT YET.
+    --------------------------------------------------------------------------------
+
+    -- TODO: update bar when the modifier changed, while casting.
+    function addon:HealModifierUpdate(event, unit, targetName, healModifier)
+    end
+
+
+    -------------------------------------------------------------------------------------------------------
+    -- DirectHealDelayed
+    -- For now just prints when someone who is healing you is getting his cast delayed, like taking damage.
+    -- Possible usage is to UPDATE in how many seconds will you receive the heal.
+    -- But that needs HealingStart to be using endTime to create the timer... :)
+    -- This function works via this event: UNIT_SPELLCAST_DELAYED
+    ---- UPDATE: WE DO NOT USE IT YET.
+    -------------------------------------------------------------------------------------------------------
+
+    function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, ...)
     end
 
 
     addon:OnEnable()
 
 
---------------------------------------------------------------------------------
--- HealModifierUpdate
--- fires when someone gains buff/debuff that affects healing size.
------- UPDATE: WE DO NOT USE IT YET.
---------------------------------------------------------------------------------
-
--- TODO: update bar when the modifier changed, while casting.
-function addon:HealModifierUpdate(event, unit, targetName, healModifier)
-end
-
-
--------------------------------------------------------------------------------------------------------
--- DirectHealDelayed
--- For now just prints when someone who is healing you is getting his cast delayed, like taking damage.
--- Possible usage is to UPDATE in how many seconds will you receive the heal.
--- But that needs HealingStart to be using endTime to create the timer... :)
--- This function works via this event: UNIT_SPELLCAST_DELAYED
----- UPDATE: WE DO NOT USE IT YET.
--------------------------------------------------------------------------------------------------------
-
-function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, ...)
-end
 
