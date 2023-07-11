@@ -1,168 +1,182 @@
-local HealComm = LibStub:GetLibrary("LibHealComm-3.0")
-local addon = {}
-local AceTimer = LibStub("AceTimer-3.0")
+--------------------------------------------------------------------------------
+---- BlizzIncomingHeals TBC 2.4.3
+---- Idea by Macumba
+---- Coding by Sattva and Macumba
+---- Addon uses LibHealComm 3.0 callbacks.
+--------------------------------------------------------------------------------
 
--- Assert color codes for clarity
-local COLOR_GREEN = "|cff00ff00"  -- Green
-local COLOR_RED = "|cffff0000"    -- Red
-local COLOR_YELLOW = "|cffffff00" -- Yellow
-local COLOR_RESET = "|r"         -- Reset
 
-local lastStatusBar
+    local HealComm = LibStub:GetLibrary("LibHealComm-3.0")
+    local addon = {}
+    addon.healerStatusBars = addon.healerStatusBars or {}
 
-function addon:OnEnable()
-    self.activeHealers = {} -- table to store healer names
-    HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
-    HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
-    HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
-    HealComm.RegisterCallback(self, "HealComm_DirectHealDelayed", "HealComm_DirectHealDelayed")
-end
+    local AceTimer = LibStub("AceTimer-3.0")
+
+    -- Assert color codes for clarity
+    local COLOR_GREEN = "|cff00ff00"  -- Green
+    local COLOR_RED = "|cffff0000"    -- Red
+    local COLOR_YELLOW = "|cffffff00" -- Yellow
+    local COLOR_RESET = "|r"         -- Reset
+
+    local lastStatusBar
+
+    function addon:OnEnable()
+        self.activeHealers = {} -- table to store healer names
+        HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
+        HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
+        HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
+        HealComm.RegisterCallback(self, "HealComm_DirectHealDelayed", "HealComm_DirectHealDelayed")
+    end
 
 --------------------------------------------------------------------------------
 ----  Healing Start
 --------------------------------------------------------------------------------
 
--- Adding this outside of your function to keep track of total heals
-addon.totalHealMap = addon.totalHealMap or {}
+    -- Adding this outside of your function to keep track of total heals
+    addon.totalHealMap = addon.totalHealMap or {}
 
-function addon:HealingStart(event, healerName, healSize, endTime, ...)
-    for i = 1, select('#', ...) do
-        local targetName = select(i, ...)
+    function addon:HealingStart(event, healerName, healSize, endTime, ...)
+        for i = 1, select('#', ...) do
+            local targetName = select(i, ...)
 
-        -- Check if the target is already being healed
-        local totalIncomingHeal = 0
-        if self.activeHealers[targetName] then
-            for healer, _ in pairs(self.activeHealers[targetName]) do
-                if healer ~= healerName then
-                    totalIncomingHeal = totalIncomingHeal + self:GetIncomingHealAmount(targetName, healer)
+            -- Check if the target is already being healed
+            local totalIncomingHeal = 0
+            if self.activeHealers[targetName] then
+                for healer, _ in pairs(self.activeHealers[targetName]) do
+                    if healer ~= healerName then
+                        totalIncomingHeal = totalIncomingHeal + self:GetIncomingHealAmount(targetName, healer)
+                    end
                 end
             end
-        end
-
-        -- Calculate heal values and create heal status bar
-        local maxHealth = UnitHealthMax(targetName)
-        local curHealth = UnitHealth(targetName)
-        local healthDeficit = maxHealth - curHealth
-        local effectiveHealSize = math.min(healSize, healthDeficit)
-
-        -- Calculate heal modifier
-        local healModifier = HealComm:UnitHealModifierGet(targetName)
-        effectiveHealSize = effectiveHealSize * healModifier
-
-        -- Update total heals
-        addon.totalHealMap[targetName] = (addon.totalHealMap[targetName] or 0) + effectiveHealSize
-
-        -- Print total expected heal size and effective heal size
-        print(string.format(COLOR_GREEN .. "%d" .. COLOR_RESET .. " + " .. COLOR_RED .. "%d" .. COLOR_RESET .. " = " .. COLOR_YELLOW .. "%d" .. COLOR_RESET,
-                effectiveHealSize, addon.totalHealMap[targetName] - effectiveHealSize, addon.totalHealMap[targetName]))
-
 
             -- Calculate heal values and create heal status bar
             local maxHealth = UnitHealthMax(targetName)
             local curHealth = UnitHealth(targetName)
             local healthDeficit = maxHealth - curHealth
             local effectiveHealSize = math.min(healSize, healthDeficit)
+
             -- Calculate heal modifier
             local healModifier = HealComm:UnitHealModifierGet(targetName)
             effectiveHealSize = effectiveHealSize * healModifier
 
+            -- Update total heals
+            addon.totalHealMap[targetName] = (addon.totalHealMap[targetName] or 0) + effectiveHealSize
+
+            -- Print total expected heal size and effective heal size
+            print(string.format(COLOR_GREEN .. "%d" .. COLOR_RESET .. " + " .. COLOR_RED .. "%d" .. COLOR_RESET .. " = " .. COLOR_YELLOW .. "%d" .. COLOR_RESET,
+                    effectiveHealSize, addon.totalHealMap[targetName] - effectiveHealSize, addon.totalHealMap[targetName]))
 
 
-            --------------------------------------------------------------------------------
-            ---- Create Incoming Heal Status Bar
-            --------------------------------------------------------------------------------
+                -- Calculate heal values and create heal status bar
+                local maxHealth = UnitHealthMax(targetName)
+                local curHealth = UnitHealth(targetName)
+                local healthDeficit = maxHealth - curHealth
+                local effectiveHealSize = math.min(healSize, healthDeficit)
+                -- Calculate heal modifier
+                local healModifier = HealComm:UnitHealModifierGet(targetName)
+                effectiveHealSize = effectiveHealSize * healModifier
 
-            local function createHealStatusBar(frameHealthBar)
-                -- Check if the last status bar is for the same target
-                if lastStatusBar and lastStatusBar.frameHealthBar == frameHealthBar then
-                    --print(healedHealth.."  healedhealth 1")
-                    --print(addon.totalHealMap[targetName].. "  healmap 1")
-                    lastStatusBar:SetValue(healedHealth)
-                    return lastStatusBar
+
+
+                --------------------------------------------------------------------------------
+                ---- Create Incoming Heal Status Bar
+                --------------------------------------------------------------------------------
+
+                local function createHealStatusBar(frameHealthBar)
+                    -- Check if the last status bar is for the same target
+                    if lastStatusBar and lastStatusBar.frameHealthBar == frameHealthBar then
+                        --print(healedHealth.."  healedhealth 1")
+                        --print(addon.totalHealMap[targetName].. "  healmap 1")
+                        lastStatusBar:SetValue(healedHealth)
+                        return lastStatusBar
+                    end
+
+                    -- Create a new status bar
+                    local width = effectiveHealSize / maxHealth * frameHealthBar:GetWidth()
+                    local healedHealth = curHealth + effectiveHealSize
+                    local statusBar = CreateFrame("StatusBar", "BlizzIncomingHealsStatusBar", frameHealthBar)
+                    statusBar:SetSize(frameHealthBar:GetWidth(), frameHealthBar:GetHeight())
+                    --print(frameHealthBar:GetWidth())
+                    statusBar:SetPoint("LEFT", frameHealthBar, "LEFT", 0, 0)
+                    statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+
+                    -- Add the status bar to the healer's list of status bars
+                    addon.healerStatusBars[healerName] = addon.healerStatusBars[healerName] or {}
+                    table.insert(addon.healerStatusBars[healerName], statusBar)
+                    if totalIncomingHeal > 0 then
+                        statusBar:SetStatusBarColor(1, 1, 0, 1) -- Yellow color
+                    else
+                        statusBar:SetStatusBarColor(1, 1, 1, 1) -- White color
+                    end
+                    statusBar:SetMinMaxValues(0, maxHealth)
+                    --print(healedHealth.."  2")
+                    --print(addon.totalHealMap[targetName].. "  healmap 2")
+
+                    statusBar:SetValue(curHealth + addon.totalHealMap[targetName])
+
+                    statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
+                    statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
+                    statusBar:Show()
+                    local remainingTime = endTime - GetTime()
+                    function addon:PrintAndHideStatusBar(statusBar)
+                        if statusBar then
+                            --print("Timer has ended, hiding...")
+                            statusBar:Hide()
+                            statusBar:SetValue(0)
+                            -- Reset accumulated healing for the target
+                            addon.totalHealMap[targetName] = 0
+                        end
+                    end
+
+                    statusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(statusBar) end, remainingTime)
+                    lastStatusBar = statusBar -- Update the last status bar reference
+
+                    --print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
+                    return statusBar
                 end
 
-                -- Create a new status bar
-                local width = effectiveHealSize / maxHealth * frameHealthBar:GetWidth()
-                local healedHealth = curHealth + effectiveHealSize
-                local statusBar = CreateFrame("StatusBar", "BlizzIncomingHealsStatusBar", frameHealthBar)
-                statusBar:SetSize(frameHealthBar:GetWidth(), frameHealthBar:GetHeight())
-                --print(frameHealthBar:GetWidth())
-                statusBar:SetPoint("LEFT", frameHealthBar, "LEFT", 0, 0)
-                statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-                if totalIncomingHeal > 0 then
-                    statusBar:SetStatusBarColor(1, 1, 0, 1) -- Yellow color
-                else
-                    statusBar:SetStatusBarColor(1, 1, 1, 1) -- White color
+
+                --------------------------------------------------------------------------------
+                -- Status bar creation ENDS
+                --------------------------------------------------------------------------------
+                --------------------------------------------------------------------------------
+                -- Healing Start CONTINUES
+                --------------------------------------------------------------------------------
+
+
+                -- Check if the target is the current target or player
+                if UnitIsUnit(targetName, "target") then
+                    self.targetStatusBar = createHealStatusBar(TargetFrameHealthBar)
                 end
-                statusBar:SetMinMaxValues(0, maxHealth)
-                --print(healedHealth.."  2")
-                --print(addon.totalHealMap[targetName].. "  healmap 2")
+                if targetName == UnitName("player") then
+                    self.playerStatusBar = createHealStatusBar(PlayerFrameHealthBar)
+                end
 
-                statusBar:SetValue(curHealth + addon.totalHealMap[targetName])
-
-                statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
-                statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
-                statusBar:Show()
-                local remainingTime = endTime - GetTime()
-                function addon:PrintAndHideStatusBar(statusBar)
-                    if statusBar then
-                        --print("Timer has ended, hiding...")
-                        statusBar:Hide()
-                        statusBar:SetValue(0)
-                        -- Reset accumulated healing for the target
-                        addon.totalHealMap[targetName] = 0
+                -- Check if any of the party members are being healed
+                for partyIndex = 1, 5 do
+                    local partyUnitID = "party" .. partyIndex
+                    local partyFrame = _G["PartyMemberFrame" .. partyIndex]
+                    if partyFrame and UnitIsUnit(targetName, partyUnitID) then
+                        self["party" .. partyIndex .. "StatusBar"] = createHealStatusBar(partyFrame.healthbar)
                     end
                 end
 
-                statusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(statusBar) end, remainingTime)
-                lastStatusBar = statusBar -- Update the last status bar reference
-
-                --print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
-                return statusBar
-            end
-
-
-            --------------------------------------------------------------------------------
-            -- Status bar creation ENDS
-            --------------------------------------------------------------------------------
-            --------------------------------------------------------------------------------
-            -- Healing Start CONTINUES
-            --------------------------------------------------------------------------------
-
-
-            -- Check if the target is the current target or player
-            if UnitIsUnit(targetName, "target") then
-                self.targetStatusBar = createHealStatusBar(TargetFrameHealthBar)
-            end
-            if targetName == UnitName("player") then
-                self.playerStatusBar = createHealStatusBar(PlayerFrameHealthBar)
-            end
-
-            -- Check if any of the party members are being healed
-            for partyIndex = 1, 5 do
-                local partyUnitID = "party" .. partyIndex
-                local partyFrame = _G["PartyMemberFrame" .. partyIndex]
-                if partyFrame and UnitIsUnit(targetName, partyUnitID) then
-                    self["party" .. partyIndex .. "StatusBar"] = createHealStatusBar(partyFrame.healthbar)
+                -- Store active healers
+                if not self.activeHealers[targetName] then
+                    self.activeHealers[targetName] = {}
                 end
-            end
+                self.activeHealers[targetName][healerName] = true
 
-            -- Store active healers
-            if not self.activeHealers[targetName] then
-                self.activeHealers[targetName] = {}
-            end
-            self.activeHealers[targetName][healerName] = true
-
+        end
     end
-end
 
-function addon:GetIncomingHealAmount(targetName, healerName)
-    local incomingHealBefore, incomingHealAfter, _, nextSize, nextName = HealComm:UnitIncomingHealGet(targetName, GetTime())
-    if nextName and nextName == healerName then
-        return nextSize
+    function addon:GetIncomingHealAmount(targetName, healerName)
+        local incomingHealBefore, incomingHealAfter, _, nextSize, nextName = HealComm:UnitIncomingHealGet(targetName, GetTime())
+        if nextName and nextName == healerName then
+            return nextSize
+        end
+        return 0
     end
-    return 0
-end
 
 
 --------------------------------------------------------------------------------
@@ -247,72 +261,82 @@ end
 
 --------------------------------------------------------------------------------
 ---- HealingStop
-    -- Fires when:
+    -- Fires IF:
         -- Someone stopped his cast.
         -- Someone got interrupted.
 --------------------------------------------------------------------------------
 
-function addon:HealingStop(event, healerName, healSize, succeeded, ...)
-    --print("called")
-    for i = 1, select('#', ...) do
-        local targetName = select(i, ...)
-        --print("|cFFFF0000Healing Stop is called|r")
-        if self.activeHealers[targetName] then
-            self.activeHealers[targetName][healerName] = nil
+    function addon:HealingStop(event, healerName, healSize, succeeded, ...)
 
-            -- Check if there are any healers left
-            local healersLeft = false
-            for _ in pairs(self.activeHealers[targetName]) do
-                healersLeft = true
-                break
+        -- Reset all status bars created by the healer
+        if addon.healerStatusBars[healerName] then
+            for _, statusBar in ipairs(addon.healerStatusBars[healerName]) do
+                statusBar:Hide()
+                statusBar:SetValue(0)
             end
+            addon.healerStatusBars[healerName] = {}  -- Clear the list of status bars for the healer
+        end
+        --print("called")
+        for i = 1, select('#', ...) do
+            local targetName = select(i, ...)
+            --print("|cFFFF0000Healing Stop is called|r")
+            if self.activeHealers[targetName] then
+                self.activeHealers[targetName][healerName] = nil
 
-            -- Print statements added here
-            --print("Target Name: " .. targetName)
-            --print("Healer Name: " .. healerName)
-            --print("Healers Left: " .. tostring(healersLeft))
-
-            -- If there are no healers left, hide the bar
-            if not healersLeft then
-                if self.targetStatusBar then
-                    AceTimer:CancelTimer(addon.targetStatusBar.timerID, true)
-                    addon.targetStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.targetStatusBar) end, 0.1)
-                    self.targetStatusBar:Hide()
-                    self.targetStatusBar:SetValue(0)
-                    self.targetStatusBar = nil
-
-                end
-                if self.playerStatusBar then
-                    if addon.playerStatusBar.timerID then print ("true") else print("false") end
-                    AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
-                    addon.playerStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.playerStatusBar) end, 0.1)
-                    self.playerStatusBar:Hide()
-                    self.playerStatusBar:SetValue(0)
-                    self.playerStatusBar = nil
-
+                -- Check if there are any healers left
+                local healersLeft = false
+                for _ in pairs(self.activeHealers[targetName]) do
+                    healersLeft = true
+                    break
                 end
 
-                -- Repeat the logic for party status bars accordingly...
-                for partyIndex = 1, 5 do
-                    local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
-                    if partyStatusBar then
-                        partyStatusBar:Hide()
-                        partyStatusBar:SetValue(0)
-                        self["party" .. partyIndex .. "StatusBar"] = nil
+
+                -- Print statements added here
+                --print("Target Name: " .. targetName)
+                --print("Healer Name: " .. healerName)
+                --print("Healers Left: " .. tostring(healersLeft))
+
+                -- If there are no healers left, hide the bar
+                if not healersLeft then
+                    if self.targetStatusBar then
+                        AceTimer:CancelTimer(addon.targetStatusBar.timerID, true)
+                        addon.targetStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.targetStatusBar) end, 0.1)
+                        self.targetStatusBar:Hide()
+                        self.targetStatusBar:SetValue(0)
+                        self.targetStatusBar = nil
+
                     end
+                    if self.playerStatusBar then
+                        --if addon.playerStatusBar.timerID then print ("true") else print("false") end
+                        AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
+                        addon.playerStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.playerStatusBar) end, 0.1)
+                        self.playerStatusBar:Hide()
+                        self.playerStatusBar:SetValue(0)
+                        self.playerStatusBar = nil
+
+                    end
+
+                    -- Repeat the logic for party status bars accordingly...
+                    for partyIndex = 1, 5 do
+                        local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
+                        if partyStatusBar then
+                            partyStatusBar:Hide()
+                            partyStatusBar:SetValue(0)
+                            self["party" .. partyIndex .. "StatusBar"] = nil
+                        end
+                    end
+                    if lastStatusBar then
+                        --print("laststatus")
+                        lastStatusBar:Hide()
+                    end
+                    lastStatusBar = nil -- Reset the last status bar reference
+                    -- Reset total heal
+                    addon.totalHealMap[targetName] = 0
                 end
-                if lastStatusBar then
-                    --print("laststatus")
-                    lastStatusBar:Hide()
-                end
-                lastStatusBar = nil -- Reset the last status bar reference
-                -- Reset total heal
-                addon.totalHealMap[targetName] = 0
             end
         end
     end
-end
 
 
-addon:OnEnable()
+    addon:OnEnable()
 
