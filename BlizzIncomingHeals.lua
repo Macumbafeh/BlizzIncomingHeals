@@ -25,8 +25,8 @@
         self.totalHealMap = self.totalHealMap or {}
         HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
         HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
-        HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
-        HealComm.RegisterCallback(self, "HealComm_DirectHealDelayed", "HealComm_DirectHealDelayed")
+        --HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
+        --HealComm.RegisterCallback(self, "HealComm_DirectHealDelayed", "HealComm_DirectHealDelayed")
     end
 
 --------------------------------------------------------------------------------
