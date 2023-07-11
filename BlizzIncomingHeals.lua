@@ -22,6 +22,7 @@
 
     function addon:OnEnable()
         self.activeHealers = {} -- table to store healer names
+        self.totalHealMap = self.totalHealMap or {}
         HealComm.RegisterCallback(self, "HealComm_DirectHealStart", "HealingStart")
         HealComm.RegisterCallback(self, "HealComm_DirectHealStop", "HealingStop")
         HealComm.RegisterCallback(self, "HealComm_HealModifierUpdate", "HealModifierUpdate")
@@ -31,9 +32,6 @@
 --------------------------------------------------------------------------------
 ----  Healing Start
 --------------------------------------------------------------------------------
-
-    -- Adding this outside of your function to keep track of total heals
-    addon.totalHealMap = addon.totalHealMap or {}
 
     function addon:HealingStart(event, healerName, healSize, endTime, ...)
         for i = 1, select('#', ...) do
@@ -49,6 +47,9 @@
                 end
             end
 
+            --print(targetName) -- Print the targetName
+
+
             -- Calculate heal values and create heal status bar
             local maxHealth = UnitHealthMax(targetName)
             local curHealth = UnitHealth(targetName)
@@ -59,6 +60,8 @@
             local healModifier = HealComm:UnitHealModifierGet(targetName)
             effectiveHealSize = effectiveHealSize * healModifier
 
+            ---- totalHealMap
+            --print(effectiveHealSize)
             -- Update total heals
             addon.totalHealMap[targetName] = (addon.totalHealMap[targetName] or 0) + effectiveHealSize
 
@@ -123,8 +126,6 @@
                             --print("Timer has ended, hiding...")
                             statusBar:Hide()
                             statusBar:SetValue(0)
-                            -- Reset accumulated healing for the target
-                            addon.totalHealMap[targetName] = 0
                         end
                     end
 
