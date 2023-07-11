@@ -120,16 +120,7 @@
                     statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
                     statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
                     statusBar:Show()
-                    local remainingTime = endTime - GetTime()
-                    function addon:PrintAndHideStatusBar(statusBar)
-                        if statusBar then
-                            --print("Timer has ended, hiding...")
-                            statusBar:Hide()
-                            statusBar:SetValue(0)
-                        end
-                    end
 
-                    statusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(statusBar) end, remainingTime)
                     lastStatusBar = statusBar -- Update the last status bar reference
 
                     --print(string.format("%s heals %s for %d", healerName, targetName, effectiveHealSize))
@@ -141,7 +132,7 @@
                 -- Status bar creation ENDS
                 --------------------------------------------------------------------------------
                 --------------------------------------------------------------------------------
-                -- Healing Start CONTINUES
+                ---- Healing Start CONTINUES
                 --------------------------------------------------------------------------------
 
 
@@ -171,6 +162,11 @@
         end
     end
 
+    --------------------------------------------------------------------------------
+    ---- Next func is used for getting total healing amount.
+    --------------------------------------------------------------------------------
+
+
     function addon:GetIncomingHealAmount(targetName, healerName)
         local incomingHealBefore, incomingHealAfter, _, nextSize, nextName = HealComm:UnitIncomingHealGet(targetName, GetTime())
         if nextName and nextName == healerName then
@@ -181,88 +177,8 @@
 
 
 --------------------------------------------------------------------------------
----- Some debug codes.
---------------------------------------------------------------------------------
-
-
-    --===== Prints whatever is inside local addon = {} table. Usage /run PrintAddonTableContains() =====--
-
-    --function PrintAddonTableContains()
-    --    for key, value in pairs(addon) do
-    --        print(key, value)
-    --    end
-    --end
-
-
-
---------------------------------------------------------------------------------
----- HealModifierUpdate
-    -- fires when someone gains buff/debuff that affects healing size.
---------------------------------------------------------------------------------
-
-    -- TODO: update bar when the modifier changed, while casting.
-    function addon:HealModifierUpdate(event, unit, targetName, healModifier)
-        if unit == "player" then
-            -- Update healing modifier for the player
-            -- You can use the healModifier value for further calculations or updates
-            --print(string.format("Healing modifier updated for player: %s", healModifier))
-        elseif unit:sub(1, 5) == "party" then
-            -- Update healing modifier for party members
-            local partyIndex = tonumber(unit:sub(6))
-            -- You can use the healModifier value for further calculations or updates
-            --print(string.format("Healing modifier updated for party member %d: %s", partyIndex, healModifier))
-        elseif unit:sub(1, 4) == "raid" then
-            -- Update healing modifier for raid members
-            local raidIndex = tonumber(unit:sub(5))
-            -- You can use the healModifier value for further calculations or updates
-            --print(string.format("Healing modifier updated for raid member %d: %s", raidIndex, healModifier))
-        end
-    end
-
-
--------------------------------------------------------------------------------------------------------
----- DirectHealDelayed
-    -- For now just prints when someone who is healing you is getting his cast delayed, like taking damage.
-        -- Possible usage is to UPDATE in how many seconds will you receive the heal.
-            -- But that needs HealingStart to be using endTime to create the timer... :)
-                -- This function works via this event: UNIT_SPELLCAST_DELAYED
--------------------------------------------------------------------------------------------------------
-
-function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, ...)
-    for i = 1, select('#', ...) do
-        local targetName = select(i, ...)
-
-        local timeRemaining = endTime - GetTime()
-        --print(string.format("|cFFFF0000%s's|r healing on |cFF00FF00%s|r has been delayed. It will be completed in |cFFFFFF00%.2f|r seconds.", healerName, targetName, timeRemaining))
-
-        -- Cancel the existing timer and create a new one in case of player
-        if addon.playerStatusBar and targetName == UnitName("player") then
-            --AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
-            AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
-            addon.playerStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.playerStatusBar) end, endTime - GetTime())
-        end
-
-        -- Cancel the existing timer and create a new one in case of target
-        if addon.targetStatusBar and UnitIsUnit(targetName, "target") then
-            AceTimer:CancelTimer(addon.targetStatusBar.timerID, true)
-            addon.targetStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.targetStatusBar) end, endTime - GetTime())
-        end
-
-        -- Cancel the existing timer and create a new one in case of party members
-        for partyIndex = 1, 5 do
-            local partyUnitID = "party" .. partyIndex
-            if addon["party" .. partyIndex .. "StatusBar"] and UnitIsUnit(targetName, partyUnitID) then
-                AceTimer:CancelTimer(addon["party" .. partyIndex .. "StatusBar"].timerID, true)
-                addon["party" .. partyIndex .. "StatusBar"].timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon["party" .. partyIndex .. "StatusBar"]) end, endTime - GetTime())
-            end
-        end
-    end
-end
-
-
---------------------------------------------------------------------------------
 ---- HealingStop
-    -- Fires IF:
+    ------ Fires IF:
         -- Someone stopped his cast.
         -- Someone got interrupted.
 --------------------------------------------------------------------------------
@@ -277,7 +193,7 @@ end
             end
             addon.healerStatusBars[healerName] = {}  -- Clear the list of status bars for the healer
         end
-        --print("called")
+
         for i = 1, select('#', ...) do
             local targetName = select(i, ...)
             --print("|cFFFF0000Healing Stop is called|r")
@@ -292,40 +208,8 @@ end
                 end
 
 
-                -- Print statements added here
-                --print("Target Name: " .. targetName)
-                --print("Healer Name: " .. healerName)
-                --print("Healers Left: " .. tostring(healersLeft))
-
                 -- If there are no healers left, hide the bar
                 if not healersLeft then
-                    if self.targetStatusBar then
-                        AceTimer:CancelTimer(addon.targetStatusBar.timerID, true)
-                        addon.targetStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.targetStatusBar) end, 0.1)
-                        self.targetStatusBar:Hide()
-                        self.targetStatusBar:SetValue(0)
-                        self.targetStatusBar = nil
-
-                    end
-                    if self.playerStatusBar then
-                        --if addon.playerStatusBar.timerID then print ("true") else print("false") end
-                        AceTimer:CancelTimer(addon.playerStatusBar.timerID, true)
-                        addon.playerStatusBar.timerID = AceTimer:ScheduleTimer(function() self:PrintAndHideStatusBar(addon.playerStatusBar) end, 0.1)
-                        self.playerStatusBar:Hide()
-                        self.playerStatusBar:SetValue(0)
-                        self.playerStatusBar = nil
-
-                    end
-
-                    -- Repeat the logic for party status bars accordingly...
-                    for partyIndex = 1, 5 do
-                        local partyStatusBar = self["party" .. partyIndex .. "StatusBar"]
-                        if partyStatusBar then
-                            partyStatusBar:Hide()
-                            partyStatusBar:SetValue(0)
-                            self["party" .. partyIndex .. "StatusBar"] = nil
-                        end
-                    end
                     if lastStatusBar then
                         --print("laststatus")
                         lastStatusBar:Hide()
@@ -340,4 +224,28 @@ end
 
 
     addon:OnEnable()
+
+
+--------------------------------------------------------------------------------
+-- HealModifierUpdate
+-- fires when someone gains buff/debuff that affects healing size.
+------ UPDATE: WE DO NOT USE IT YET.
+--------------------------------------------------------------------------------
+
+-- TODO: update bar when the modifier changed, while casting.
+function addon:HealModifierUpdate(event, unit, targetName, healModifier)
+end
+
+
+-------------------------------------------------------------------------------------------------------
+-- DirectHealDelayed
+-- For now just prints when someone who is healing you is getting his cast delayed, like taking damage.
+-- Possible usage is to UPDATE in how many seconds will you receive the heal.
+-- But that needs HealingStart to be using endTime to create the timer... :)
+-- This function works via this event: UNIT_SPELLCAST_DELAYED
+---- UPDATE: WE DO NOT USE IT YET.
+-------------------------------------------------------------------------------------------------------
+
+function addon:HealComm_DirectHealDelayed(event, healerName, healSize, endTime, ...)
+end
 
