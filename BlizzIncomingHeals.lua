@@ -104,6 +104,8 @@
                     statusBar:SetSize(frameHealthBar:GetWidth(), frameHealthBar:GetHeight())
                     --print(frameHealthBar:GetWidth())
                     statusBar:SetPoint("LEFT", frameHealthBar, "LEFT", 0, 0)
+                    statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel()) -- Set the frame level below the health bar
+                    statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
                     statusBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
 
                     -- Add the status bar to the healer's list of status bars
@@ -158,24 +160,24 @@
                         end
                     end)
 
-                    -- EXPERIMENTAL STRATA FIX
-                    -- Get the parent frame of the health bar
-                    local parentFrame = frameHealthBar:GetParent()
-                    -- Get the name of the parent frame
-                    local parentFrameName = parentFrame:GetName()
-                    -- Get the health bar of the parent frame
-                    local parentHealthBar = _G[parentFrameName .. "HealthBar"]
-                    -- Set the frame level of the status bar to be one less than the health bar of the parent frame
-                    -- If the parent frame is the TargetFrame, set the frame level of the status bar to be the same as the health bar
-                    if parentFrameName == "TargetFrame" then
-                        statusBar:SetFrameLevel(parentHealthBar:GetFrameLevel())
-                    else
-                        -- For all other frames, set the frame level of the status bar to be one less than the health bar
-                        statusBar:SetFrameLevel(parentHealthBar:GetFrameLevel() - 1)
-                    end
+                    ---- EXPERIMENTAL STRATA FIX
+                    ---- Get the parent frame of the health bar
+                    --local parentFrame = frameHealthBar:GetParent()
+                    ---- Get the name of the parent frame
+                    --local parentFrameName = parentFrame:GetName()
+                    ---- Get the health bar of the parent frame
+                    --local parentHealthBar = _G[parentFrameName .. "HealthBar"]
+                    ---- Set the frame level of the status bar to be one less than the health bar of the parent frame
+                    ---- If the parent frame is the TargetFrame, set the frame level of the status bar to be the same as the health bar
+                    --if parentFrameName == "TargetFrame" then
+                    --    statusBar:SetFrameLevel(parentHealthBar:GetFrameLevel())
+                    --else
+                    --    -- For all other frames, set the frame level of the status bar to be one less than the health bar
+                    --    statusBar:SetFrameLevel(parentHealthBar:GetFrameLevel())
+                    --end
 
-                    --statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
-                    --statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
+                    statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel()) -- Set the frame level below the health bar
+                    statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
 
                     statusBar:Show()
 
