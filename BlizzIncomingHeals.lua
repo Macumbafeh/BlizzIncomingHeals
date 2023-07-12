@@ -112,8 +112,22 @@
                     if totalIncomingHeal > 0 then
                         statusBar:SetStatusBarColor(1, 1, 0, 1) -- Yellow color
                     else
-                        statusBar:SetStatusBarColor(0, 1, 0, 1) -- Green color
-                        --statusBar:SetStatusBarColor(1, 1, 1, 1) -- White color
+                        --TODO: check for if RAID_CLASS_COLORS exists
+                        local healerClass = select(2, UnitClass(healerName))
+                        local classColor = RAID_CLASS_COLORS[healerClass]
+
+                        local targetClass = select(2, UnitClass(targetName))
+
+                        local healerColor = RAID_CLASS_COLORS[healerClass]
+                        local targetColor = RAID_CLASS_COLORS[targetClass]
+
+                        if healerColor and targetColor then
+                            if healerClass ~= targetClass then
+                                statusBar:SetStatusBarColor(classColor.r, classColor.g, classColor.b, 1)
+                            else
+                                statusBar:SetStatusBarColor(0, 1, 0, 0.6) -- Green color
+                            end
+                        end
                     end
                     statusBar:SetMinMaxValues(0, maxHealth)
 
@@ -218,7 +232,6 @@
         end
         return 0
     end
-
 
 --------------------------------------------------------------------------------
 ---- HealingStop
