@@ -222,6 +222,8 @@ end
 local healingBuffs =
 {
     [GetSpellInfo(28176)] = 1.20,   -- Fel Armor
+	[GetSpellInfo(33946)] = 1.10,      -- Amplify Magic (Rank 6)
+	[GetSpellInfo(33944)] = 0.95,     -- Dampen Magic (Rank 6)
     [GetSpellInfo(45234)] = function (count, rank) return (1.0 + (0.04 + 0.03 * (rank - 1)) * count) end  -- Focused Will
 }
 
@@ -258,6 +260,8 @@ local healingDebuffs =
     [GetSpellInfo(41350)] = 2.00,   -- Aura of Desire (Essence of Souls - Black Temple)
     [GetSpellInfo(30843)] = 0.00,   -- Enfeeble (Prince Malchezaar - Karazhan)
     [GetSpellInfo(9035)] = 0.80,   -- Hex of Weakness
+	[GetSpellInfo(32858)] = 0.80,      -- Touch of the Forgotten (Auchenai Crypts)
+	[GetSpellInfo(38377)] = 0.50,      -- Touch of the Forgotten (Auchenai Crypts)
 }
 if not WoTLK then
     -- Priest racial removed in expansion.
