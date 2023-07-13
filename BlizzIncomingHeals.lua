@@ -176,7 +176,7 @@
                     --    statusBar:SetFrameLevel(parentHealthBar:GetFrameLevel())
                     --end
 
-                    statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel()) -- Set the frame level below the health bar
+                    statusBar:SetFrameLevel(frameHealthBar:GetFrameLevel() - 1) -- Set the frame level below the health bar
                     statusBar:SetFrameStrata(frameHealthBar:GetFrameStrata())
 
                     statusBar:Show()
